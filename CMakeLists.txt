@@ -167,6 +167,11 @@ if (NOT ${OPENSSL_FOUND})
     " ${OPENSSL_ROOT_DIR}")
 endif()
 
+# Memkind
+set(MEMKIND_INCLUDE_DIR /usr/local/lib)
+set(MEMKIND_STATIC_LIBRARIES /usr/local/include)
+IMPALA_ADD_THIRDPARTY_LIB(memkind ${MEMKIND_INCLUDE_DIR} ${MEMKIND_STATIC_LIBRARIES} "")
+
 # OpenSSL, being a security dependency, is always dynamically linked.
 IMPALA_ADD_THIRDPARTY_LIB(openssl_ssl ${OPENSSL_INCLUDE_DIR} "" ${OPENSSL_SSL_LIBRARY})
 IMPALA_ADD_THIRDPARTY_LIB(openssl_crypto "" "" ${OPENSSL_CRYPTO_LIBRARY})

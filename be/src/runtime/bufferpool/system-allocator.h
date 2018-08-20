@@ -22,6 +22,8 @@
 
 #include "runtime/bufferpool/buffer-pool.h"
 
+#include <memkind.h>
+
 namespace impala {
 
 /// The underlying memory allocator for the buffer pool that allocates buffer memory from
@@ -43,10 +45,15 @@ class SystemAllocator {
   /// Allocate 'len' bytes of memory for a buffer via mmap().
   Status AllocateViaMMap(int64_t len, uint8_t** buffer_mem);
 
+  /// Allocate 'len' bytes of memory for a buffer via memkind.
+  Status AllocateViaMemkind(int64_t len, uint8_t** buffer_mem);
+
   /// Allocate 'len' bytes of memory for a buffer via our malloc implementation.
   Status AllocateViaMalloc(int64_t len, uint8_t** buffer_mem);
 
   const int64_t min_buffer_len_;
+
+  memkind* memkind_;
 };
 }
 

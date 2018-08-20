@@ -26,6 +26,11 @@
 
 #include "common/names.h"
 
+#include <memkind.h>
+#include <memkind/internal/memkind_pmem.h>
+
+#define PMEM_MAX_SIZE ((size_t)460 * 1024 * 1024 * 1024)
+
 // TODO: IMPALA-5073: this should eventually become the default once we are confident
 // that it is superior to allocating via TCMalloc.
 DEFINE_bool(mmap_buffers, false,
@@ -53,6 +58,14 @@ SystemAllocator::SystemAllocator(int64_t min_buffer_len)
       "tcmalloc.aggressive_memory_decommit", &aggressive_decommit_enabled);
   CHECK_EQ(true, aggressive_decommit_enabled);
 #endif
+
+  if (FLAGS_memkind_buffers) {
+    struct memkind *pmem_kind;
+    int err = memkind_create_pmem("/aep/02", PMEM_MAX_SIZE, &pmem_kind);
+    DCHECK(err != 0) << "Unable to create pmem partition";
+    memkind_ = pmem_kind;
+  }
+
 }
 
 Status SystemAllocator::Allocate(int64_t len, BufferPool::BufferHandle* buffer) {
@@ -63,6 +76,8 @@ Status SystemAllocator::Allocate(int64_t len, BufferPool::BufferHandle* buffer) 
   uint8_t* buffer_mem;
   if (FLAGS_mmap_buffers) {
     RETURN_IF_ERROR(AllocateViaMMap(len, &buffer_mem));
+  } else if (FLAGS_memkind_buffers) {
+    RETURN_IF_ERROR(AllocateViaMemkind(len, &buffer_mem))	
   } else {
     RETURN_IF_ERROR(AllocateViaMalloc(len, &buffer_mem));
   }
@@ -115,6 +130,11 @@ Status SystemAllocator::AllocateViaMMap(int64_t len, uint8_t** buffer_mem) {
   return Status::OK();
 }
 
+Status SystemAllocator::AllocateViaMemkind(int64_t len, uint8_t** buffer_mem) {
+  *buffer_mem = (int *)memkind_malloc(memkind_, len);
+  return Status::OK();
+}
+
 Status SystemAllocator::AllocateViaMalloc(int64_t len, uint8_t** buffer_mem) {
   bool use_huge_pages = len % HUGE_PAGE_SIZE == 0 && FLAGS_madvise_huge_pages;
   // Allocate, aligned to the page size that we expect to back the memory range.
@@ -146,12 +166,14 @@ void SystemAllocator::Free(BufferPool::BufferHandle&& buffer) {
   if (FLAGS_mmap_buffers) {
     int rc = munmap(buffer.data(), buffer.len());
     DCHECK_EQ(rc, 0) << "Unexpected munmap() error: " << errno;
+  } else if (FLAGS_memkind_buffers) {
+    memkind_free(memkind_, buffer.data());  
   } else {
     bool use_huge_pages = buffer.len() % HUGE_PAGE_SIZE == 0 && FLAGS_madvise_huge_pages;
     if (use_huge_pages) {
       // Undo the madvise so that is isn't a candidate to be newly backed by huge pages.
       // We depend on TCMalloc's "aggressive decommit" mode decommitting the physical
-      // huge pages with madvise(DONTNEED) when we call free(). Otherwise, this huge
+      // huge pages with madvise(DONTNEED) when we callyfree(). Otherwise, this huge
       // page region may be divvied up and subsequently decommitted in smaller chunks,
       // which may not actually release the physical memory, causing Impala physical
       // memory usage to exceed the process limit.
