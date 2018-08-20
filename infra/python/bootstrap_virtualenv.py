@@ -336,7 +336,7 @@ def reqs_are_installed(reqs_path):
 
 def setup_virtualenv_if_not_exists():
   if not reqs_are_installed(REQS_PATH):
-    delete_virtualenv_if_exist()
+    #delete_virtualenv_if_exist()
     create_virtualenv()
     install_deps()
     LOG.debug("Virtualenv setup complete")

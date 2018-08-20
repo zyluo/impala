@@ -29,11 +29,13 @@ import sys
 from hashlib import md5
 from random import randint
 from time import sleep
-from urllib import urlopen, URLopener
+#from urllib import URLopener
+from urllib2 import urlopen
 
 NUM_DOWNLOAD_ATTEMPTS = 8
 
 PYPI_MIRROR = os.environ.get('PYPI_MIRROR', 'https://pypi.python.org')
+
 
 # The requirement files that list all of the required packages and versions.
 REQUIREMENTS_FILES = ['requirements.txt', 'compiled-requirements.txt',
@@ -76,40 +78,44 @@ def get_package_info(pkg_name, pkg_version):
   # downloading an extra package before running this script. Since the HTML is guaranteed
   # to be formatted according to PEP 503, this is acceptable.
   pkg_info = urlopen(url).read()
+  #print pkg_info
   # We assume that the URL includes a hash and the hash function is md5. This not strictly
   # required by PEP 503.
-  regex = r'<a href=\".*?packages/(.*?)#md5=(.*?)\".*?>(.*?)<\/a>'
+  regex = r'<a href=\".*?packages/(.*?)#sha256=(.*?)\".*?>(.*?)<\/a>'
   for match in re.finditer(regex, pkg_info):
     path = match.group(1)
-    md5_digest = match.group(2)
+    #print "PATH" + path
     file_name = match.group(3)
+    #print "FILE_NAME" + file_name
     # Make sure that we consider only non Wheel archives, because those are not supported.
     if (file_name.endswith('-{0}.tar.gz'.format(pkg_version)) or
         file_name.endswith('-{0}.tar.bz2'.format(pkg_version)) or
         file_name.endswith('-{0}.zip'.format(pkg_version))):
-      candidates.append((file_name, path, md5_digest))
+      candidates.append((file_name, path))
   if not candidates:
     print 'Could not find archive to download for {0} {1}'.format(pkg_name, pkg_version)
-    return (None, None, None)
+    return (None, None)
   return sorted(candidates)[0]
 
 @retry
 def download_package(pkg_name, pkg_version):
-  file_name, path, expected_md5 = get_package_info(pkg_name, pkg_version)
+  file_name, path = get_package_info(pkg_name, pkg_version)
   if not file_name:
     return False
-  if os.path.isfile(file_name) and check_md5sum(file_name, expected_md5):
-    print 'File with matching md5sum already exists, skipping {0}'.format(file_name)
+  if os.path.isfile(file_name):
+    print 'File already exists, skipping {0}'.format(file_name)
     return True
-  downloader = URLopener()
+  #downloader = URLopener()
   pkg_url = '{0}/packages/{1}'.format(PYPI_MIRROR, path)
   print 'Downloading {0} from {1}'.format(file_name, pkg_url)
-  downloader.retrieve(pkg_url, file_name)
-  if check_md5sum(file_name, expected_md5):
-    return True
-  else:
-    print 'MD5 mismatch in file {0}.'.format(file_name)
-    return False
+  downloader = urlopen(pkg_url)
+  with open(file_name, "wb") as file:
+    file.write(downloader.read())
+  #if check_md5sum(file_name, expected_md5):
+  return True
+  #else:
+  #  print 'MD5 mismatch in file {0}.'.format(file_name)
+  #  return False
 
 def main():
   if len(sys.argv) > 1:

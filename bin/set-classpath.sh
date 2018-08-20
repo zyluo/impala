@@ -23,6 +23,7 @@
 # explicitly to the CLASSPATH.
 
 CLASSPATH=\
+"$IMPALA_HOME"/conf:\
 "$IMPALA_HOME"/fe/src/test/resources:\
 "$IMPALA_HOME"/fe/target/classes:\
 "$IMPALA_HOME"/fe/target/dependency:\
