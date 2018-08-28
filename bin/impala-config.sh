@@ -473,8 +473,8 @@ export SENTRY_CONF_DIR="$IMPALA_HOME/fe/src/test/resources"
 
 # Extract the first component of the hive version.
 export IMPALA_HIVE_MAJOR_VERSION=$(echo "$IMPALA_HIVE_VERSION" | cut -d . -f 1)
-export HIVE_HOME="/root/workspace/apache-hive-2.3.3-bin"
-#export HIVE_HOME="$CDH_COMPONENTS_HOME/hive-${IMPALA_HIVE_VERSION}/"
+#export HIVE_HOME="/root/workspace/apache-hive-2.3.3-bin"
+export HIVE_HOME="$CDH_COMPONENTS_HOME/hive-${IMPALA_HIVE_VERSION}/"
 export PATH="${HIVE_HOME}/bin:$PATH"
 # Allow overriding of Hive source location in case we want to build Impala without
 # a complete Hive build.
@@ -551,6 +551,7 @@ LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:`dirname ${LIB_JVM}`"
 LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${HADOOP_LIB_DIR}/native"
 LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${IMPALA_SNAPPY_PATH}"
 LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${IMPALA_LZO}/build"
+LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
 if [ $USE_SYSTEM_GCC -eq 0 ]; then
   IMPALA_TOOLCHAIN_GCC_LIB="${IMPALA_TOOLCHAIN}/gcc-${IMPALA_GCC_VERSION}/lib64"

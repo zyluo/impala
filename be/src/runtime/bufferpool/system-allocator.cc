@@ -37,6 +37,9 @@ DEFINE_bool(mmap_buffers, false,
     "(Experimental) If true, allocate buffers directly from the operating system "
     "instead of with TCMalloc.");
 
+DEFINE_bool(memkind_buffers, false,
+    "(Experimental) If true, allocate buffers from memkind.");
+
 DEFINE_bool(madvise_huge_pages, true,
     "(Advanced) If true, advise operating system to back large memory buffers with huge "
     "pages");
@@ -61,8 +64,9 @@ SystemAllocator::SystemAllocator(int64_t min_buffer_len)
 
   if (FLAGS_memkind_buffers) {
     struct memkind *pmem_kind;
-    int err = memkind_create_pmem("/aep/02", PMEM_MAX_SIZE, &pmem_kind);
-    DCHECK(err != 0) << "Unable to create pmem partition";
+    int err = 0;
+    err = memkind_create_pmem("/aep/02", PMEM_MAX_SIZE, &pmem_kind);
+    DCHECK_EQ(err, 0) << "Create pmem partition with /aep/02";
     memkind_ = pmem_kind;
   }
 
@@ -77,7 +81,7 @@ Status SystemAllocator::Allocate(int64_t len, BufferPool::BufferHandle* buffer) 
   if (FLAGS_mmap_buffers) {
     RETURN_IF_ERROR(AllocateViaMMap(len, &buffer_mem));
   } else if (FLAGS_memkind_buffers) {
-    RETURN_IF_ERROR(AllocateViaMemkind(len, &buffer_mem))	
+    RETURN_IF_ERROR(AllocateViaMemkind(len, &buffer_mem));
   } else {
     RETURN_IF_ERROR(AllocateViaMalloc(len, &buffer_mem));
   }
@@ -131,7 +135,7 @@ Status SystemAllocator::AllocateViaMMap(int64_t len, uint8_t** buffer_mem) {
 }
 
 Status SystemAllocator::AllocateViaMemkind(int64_t len, uint8_t** buffer_mem) {
-  *buffer_mem = (int *)memkind_malloc(memkind_, len);
+  *buffer_mem = (uint8_t *)memkind_malloc(memkind_, len);
   return Status::OK();
 }
 

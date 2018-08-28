@@ -92,7 +92,7 @@ endif()
 SET(CXX_FLAGS_DEBUG "${CXX_GCC_FLAGS} -ggdb -gdwarf-2")
 # -Werror: compile warnings should be errors when using the toolchain compiler.
 #   Only enable for debug builds because this is what we test in pre-commit tests.
-SET(CXX_FLAGS_DEBUG "${CXX_FLAGS_DEBUG} -Werror")
+SET(CXX_FLAGS_DEBUG "${CXX_FLAGS_DEBUG}")
 SET(CXX_FLAGS_RELEASE "${CXX_GCC_FLAGS} -O3 -DNDEBUG -gdwarf-2")
 SET(CXX_FLAGS_ADDRESS_SANITIZER
   "${CXX_CLANG_FLAGS} -O1 -g -fsanitize=address -fno-omit-frame-pointer -DADDRESS_SANITIZER")
@@ -294,6 +294,7 @@ set(CLANG_INCLUDE_FLAGS
   "-I${OPENSSL_INCLUDE_DIR}"
   "-I${LDAP_INCLUDE_DIR}"
   "-I${PROTOBUF_INCLUDE_DIR}"
+  "-I${MEMKIND_INCLUDE_DIR}"
 )
 
 # allow linking of static libs into dynamic lib
@@ -431,7 +432,8 @@ set (IMPALA_DEPENDENCIES
   bzip2
   avro
   java_jvm
-  kudu_client)
+  kudu_client
+  memkind)
 
 # Add all external dependencies. They should come after the impala libs.
 set (IMPALA_LINK_LIBS ${IMPALA_LINK_LIBS}
